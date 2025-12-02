@@ -8,14 +8,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50">
-        {/* TODO: Import and add your Navbar component here */}
-        
-        <main className="flex-grow">
-          {children}
-        </main>
-        
-        {/* TODO: Import and add your Footer component here */}
+      <body>
+        {children}
       </body>
     </html>
   )
