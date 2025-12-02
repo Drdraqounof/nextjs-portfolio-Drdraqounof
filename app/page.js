@@ -1,8 +1,5 @@
-'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import styles from './portfolio.module.css';
 
 const Portfolio = () => {
   const [activeSection, setActiveSection] = useState('home');
@@ -383,23 +380,25 @@ const Portfolio = () => {
   ];
 
   return (
-    <div className={styles.container}>
+    <div className="relative min-h-screen bg-[#0a0a15] text-white overflow-x-hidden">
       {/* Metaball Background */}
-      <div ref={containerRef} className={styles.metaballBackground} />
+      <div ref={containerRef} className="fixed inset-0 z-0" />
 
       {/* Navigation */}
-      <nav className={styles.nav}>
-        <div className={styles.navContainer}>
-          <div className={styles.navBrand}>
+      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm bg-black/20">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             YourName
           </div>
-          <div className={styles.navLinks}>
+          <div className="hidden md:flex gap-8">
             {['home', 'about', 'projects', 'contact'].map((section) => (
               <button
                 key={section}
                 onClick={() => scrollToSection(section)}
-                className={`${styles.navButton} ${
-                  activeSection === section ? styles.navButtonActive : ''
+                className={`capitalize transition-colors ${
+                  activeSection === section
+                    ? 'text-purple-400'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 {section}
@@ -410,56 +409,56 @@ const Portfolio = () => {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className={styles.section}>
-        <div className={styles.heroContent}>
-          <h1 className={styles.heroTitle}>
+      <section id="home" className="relative z-10 min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-4xl text-center">
+          <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
             Full Stack Developer
           </h1>
-          <p className={styles.heroSubtitle}>
+          <p className="text-xl md:text-2xl text-gray-300 mb-8">
             Crafting beautiful, performant web experiences that users love
           </p>
-          <div className={styles.buttonGroup}>
+          <div className="flex gap-4 justify-center flex-wrap">
             <button
               onClick={() => scrollToSection('projects')}
-              className={styles.buttonPrimary}
+              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition-all"
             >
               View Projects
             </button>
             <button
               onClick={() => scrollToSection('contact')}
-              className={styles.buttonSecondary}
+              className="px-8 py-3 border border-purple-400 rounded-full font-semibold hover:bg-purple-400/10 transition-all"
             >
               Get in Touch
             </button>
           </div>
           
           {/* Cursor Info */}
-          <div className={styles.cursorInfo}>
+          <div className="mt-12 text-sm text-gray-500 font-mono">
             vessel: ({cursorInfo.x}, {cursorInfo.y}) • field: {cursorInfo.radius}u • flux: {fps}hz
           </div>
         </div>
       </section>
 
       {/* About Section */}
-      <section id="about" className={`${styles.section} ${styles.sectionWithPadding}`}>
-        <div className={styles.aboutContent}>
-          <h2 className={styles.sectionTitle}>
+      <section id="about" className="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
+        <div className="max-w-4xl">
+          <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             About Me
           </h2>
-          <div className={styles.card}>
-            <p className={styles.cardText}>
+          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10">
+            <p className="text-lg text-gray-300 mb-6">
               I'm a passionate full-stack developer with 5+ years of experience building scalable web applications. 
               I specialize in modern JavaScript frameworks, cloud architecture, and creating intuitive user experiences.
             </p>
-            <p className={styles.cardText}>
+            <p className="text-lg text-gray-300 mb-8">
               When I'm not coding, you'll find me exploring new technologies, contributing to open source, 
               or sharing knowledge through technical writing.
             </p>
-            <div className={styles.skillsGrid}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {['React', 'Node.js', 'TypeScript', 'AWS', 'PostgreSQL', 'Docker', 'Next.js', 'GraphQL'].map((skill) => (
                 <div
                   key={skill}
-                  className={styles.skillBadge}
+                  className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-4 text-center border border-purple-400/20 hover:border-purple-400/50 transition-all"
                 >
                   {skill}
                 </div>
@@ -470,24 +469,24 @@ const Portfolio = () => {
       </section>
 
       {/* Projects Section */}
-      <section id="projects" className={`${styles.section} ${styles.sectionWithPadding}`}>
-        <div className={styles.projectsContent}>
-          <h2 className={styles.sectionTitle} style={{textAlign: 'center', marginBottom: '3rem'}}>
+      <section id="projects" className="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
+        <div className="max-w-6xl w-full">
+          <h2 className="text-5xl font-bold mb-12 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             Featured Projects
           </h2>
-          <div className={styles.projectsGrid}>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project, index) => (
               <div
                 key={index}
-                className={styles.projectCard}
+                className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-purple-400/50 transition-all hover:transform hover:scale-105"
               >
-                <h3 className={styles.projectTitle}>{project.title}</h3>
-                <p className={styles.projectDescription}>{project.description}</p>
-                <div className={styles.techTags}>
+                <h3 className="text-2xl font-bold mb-3 text-purple-300">{project.title}</h3>
+                <p className="text-gray-400 mb-4">{project.description}</p>
+                <div className="flex flex-wrap gap-2 mb-4">
                   {project.tech.map((tech, i) => (
                     <span
                       key={i}
-                      className={styles.techTag}
+                      className="text-xs px-3 py-1 bg-purple-500/20 rounded-full border border-purple-400/30"
                     >
                       {tech}
                     </span>
@@ -495,7 +494,7 @@ const Portfolio = () => {
                 </div>
                 <a
                   href={project.link}
-                  className={styles.projectLink}
+                  className="text-purple-400 hover:text-purple-300 transition-colors inline-flex items-center gap-2"
                 >
                   View Project →
                 </a>
@@ -506,22 +505,22 @@ const Portfolio = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className={`${styles.section} ${styles.sectionWithPadding}`}>
-        <div className={styles.contactContent}>
-          <h2 className={styles.sectionTitle}>
+      <section id="contact" className="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
+        <div className="max-w-2xl w-full text-center">
+          <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             Let's Connect
           </h2>
-          <div className={styles.contactCard}>
-            <p className={styles.cardText}>
+          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10">
+            <p className="text-lg text-gray-300 mb-8">
               I'm always open to discussing new projects, creative ideas, or opportunities to be part of your visions.
             </p>
             <button
               onClick={handleEmailClick}
-              className={styles.emailButton}
+              className="text-2xl font-mono text-purple-400 hover:text-purple-300 transition-colors mb-4"
             >
               {emailCopied ? '✓ Copied to clipboard!' : 'hello@yourname.com'}
             </button>
-            <div className={styles.socialLinks}>
+            <div className="flex justify-center gap-6 mt-8">
               {[
                 { name: 'GitHub', link: '#' },
                 { name: 'LinkedIn', link: '#' },
@@ -530,7 +529,7 @@ const Portfolio = () => {
                 <a
                   key={social.name}
                   href={social.link}
-                  className={styles.socialLink}
+                  className="px-6 py-2 border border-purple-400/50 rounded-full hover:bg-purple-400/10 transition-all"
                 >
                   {social.name}
                 </a>
@@ -541,7 +540,7 @@ const Portfolio = () => {
       </section>
 
       {/* Footer */}
-      <footer className={styles.footer}>
+      <footer className="relative z-10 py-8 text-center text-gray-500 text-sm border-t border-white/10">
         <p>© 2024 YourName. Built with Next.js & Three.js</p>
       </footer>
     </div>
