@@ -24,11 +24,12 @@ const Portfolio = () => {
 
   // Scroll animation for projects
   useEffect(() => {
+    const refs = projectRefs.current;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const index = projectRefs.current.indexOf(entry.target);
+            const index = refs.indexOf(entry.target);
             if (index !== -1 && !visibleProjects.includes(index)) {
               setVisibleProjects((prev) => [...prev, index]);
             }
@@ -41,19 +42,22 @@ const Portfolio = () => {
       }
     );
 
-    projectRefs.current.forEach((ref) => {
+    refs.forEach((ref) => {
       if (ref) observer.observe(ref);
     });
 
     return () => {
-      projectRefs.current.forEach((ref) => {
+      refs.forEach((ref) => {
         if (ref) observer.unobserve(ref);
       });
     };
   }, [visibleProjects]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const mobile = isMobile;
 
     // Initialize Three.js scene
     const scene = new THREE.Scene();
@@ -62,17 +66,17 @@ const Portfolio = () => {
     const clock = new THREE.Clock();
 
     const renderer = new THREE.WebGLRenderer({
-      antialias: !isMobile,
+      antialias: !mobile,
       alpha: true,
-      powerPreference: isMobile ? 'default' : 'high-performance',
+      powerPreference: mobile ? 'default' : 'high-performance',
     });
 
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
 
-    containerRef.current.appendChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
@@ -83,7 +87,7 @@ const Portfolio = () => {
         uMousePosition: { value: new THREE.Vector2(0.5, 0.5) },
         uCursorSphere: { value: new THREE.Vector3(0, 0, 0) },
         uCursorRadius: { value: 0.08 },
-        uSphereCount: { value: isMobile ? 4 : 6 },
+        uSphereCount: { value: mobile ? 4 : 6 },
         uFixedTopLeftRadius: { value: 0.8 },
         uFixedBottomRightRadius: { value: 0.9 },
         uSmallTopLeftRadius: { value: 0.3 },
@@ -419,14 +423,14 @@ const Portfolio = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      if (containerRef.current && renderer.domElement) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (container && renderer.domElement) {
+        container.removeChild(renderer.domElement);
       }
       geometry.dispose();
       material.dispose();
       renderer.dispose();
     };
-  }, []);
+  }, [isMobile]);
 
   const handleEmailClick = (e) => {
     e.preventDefault();
@@ -526,11 +530,11 @@ const Portfolio = () => {
           </h2>
           <div className={styles.card}>
             <p className={styles.cardText}>
-              I'm a passionate full-stack developer with 5+ years of experience building scalable web applications. 
+              I&apos;m a passionate full-stack developer with 5+ years of experience building scalable web applications. 
               I specialize in modern JavaScript frameworks, cloud architecture, and creating intuitive user experiences.
             </p>
             <p className={styles.cardText}>
-              When I'm not coding, you'll find me exploring new technologies, contributing to open source, 
+              When I&apos;m not coding, you&apos;ll find me exploring new technologies, contributing to open source, 
               or sharing knowledge through technical writing.
             </p>
             <div className={styles.skillsGrid}>
@@ -591,11 +595,11 @@ const Portfolio = () => {
       <section id="contact" className={`${styles.section} ${styles.sectionWithPadding}`}>
         <div className={styles.contactContent}>
           <h2 className={styles.sectionTitle}>
-            Let's Connect
+            Let&apos;s Connect
           </h2>
           <div className={styles.contactCard}>
             <p className={styles.cardText}>
-              I'm always open to discussing new projects, creative ideas, or opportunities to be part of your visions.
+              I&apos;m always open to discussing new projects, creative ideas, or opportunities to be part of your visions.
             </p>
             <button
               onClick={handleEmailClick}

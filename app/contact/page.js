@@ -8,7 +8,7 @@ export default function Contact() {
         
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
           <p className="text-xl text-gray-700 mb-8">
-            I'd love to hear from you! Feel free to reach out through any of these channels.
+            I&apos;d love to hear from you! Feel free to reach out through any of these channels.
           </p>
 
           <div className="space-y-6">
@@ -48,7 +48,7 @@ export default function Contact() {
         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-8">
           <h3 className="font-bold text-green-900 mb-2">💡 Optional Enhancements:</h3>
           <ul className="text-green-800 space-y-1">
-            <li>• Add a contact form (we'll learn this in Week 4!)</li>
+            <li>• Add a contact form (we&apos;ll learn this in Week 4!)</li>
             <li>• Include your location or timezone</li>
             <li>• Add social media icons</li>
             <li>• List your availability for projects</li>
