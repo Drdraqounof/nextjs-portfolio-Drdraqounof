@@ -508,18 +508,12 @@ const Portfolio = () => {
             Crafting beautiful, performant web experiences that users love
           </p>
           <div className={styles.buttonGroup}>
-            <button
-              onClick={() => scrollToSection('projects')}
-              className={styles.buttonPrimary}
-            >
+            <Link href="/projects" className={styles.buttonPrimary}>
               View Projects
-            </button>
-            <button
-              onClick={() => scrollToSection('contact')}
-              className={styles.buttonSecondary}
-            >
+            </Link>
+            <Link href="/contact" className={styles.buttonSecondary}>
               Get in Touch
-            </button>
+            </Link>
           </div>
         </div>
       </section>

@@ -139,6 +139,7 @@
 
 .buttonPrimary,
 .buttonSecondary {
+  display: inline-block;
   padding: 1rem 2rem;
   font-size: 1rem;
   font-weight: 600;
@@ -146,6 +147,8 @@
   cursor: pointer;
   transition: all 0.3s ease;
   border: none;
+  text-decoration: none;
+  text-align: center;
 }
 
 .buttonPrimary {
