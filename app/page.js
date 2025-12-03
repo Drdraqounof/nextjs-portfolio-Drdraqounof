@@ -1,19 +1,55 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import styles from './portfolio.module.css';
 
 const Portfolio = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [emailCopied, setEmailCopied] = useState(false);
   const [fps, setFps] = useState(60);
   const [cursorInfo, setCursorInfo] = useState({ x: 0, y: 0, radius: 0.08, merges: 0 });
+  const [visibleProjects, setVisibleProjects] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   const rendererRef = useRef(null);
   const materialRef = useRef(null);
   const clockRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const projectRefs = useRef([]);
 
   const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // Scroll animation for projects
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = projectRefs.current.indexOf(entry.target);
+            if (index !== -1 && !visibleProjects.includes(index)) {
+              setVisibleProjects((prev) => [...prev, index]);
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px'
+      }
+    );
+
+    projectRefs.current.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => {
+      projectRefs.current.forEach((ref) => {
+        if (ref) observer.unobserve(ref);
+      });
+    };
+  }, [visibleProjects]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -282,6 +318,19 @@ const Portfolio = () => {
       });
     };
 
+    const handleMouseDown = (e) => {
+      e.preventDefault();
+      setIsDragging(true);
+      material.uniforms.uCursorRadius.value = 0.15;
+      material.uniforms.uSmoothness.value = 1.2;
+    };
+
+    const handleMouseUp = (e) => {
+      setIsDragging(false);
+      material.uniforms.uCursorRadius.value = 0.08;
+      material.uniforms.uSmoothness.value = 0.8;
+    };
+
     const screenToWorldJS = (normalizedX, normalizedY) => {
       const uv_x = normalizedX * 2.0 - 1.0;
       const uv_y = normalizedY * 2.0 - 1.0;
@@ -289,7 +338,38 @@ const Portfolio = () => {
       return new THREE.Vector3(uv_x * aspect * 2.0, uv_y * 2.0, 0.0);
     };
 
+    const handleTouchMove = (e) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        const x = touch.clientX / window.innerWidth;
+        const y = 1.0 - touch.clientY / window.innerHeight;
+        
+        const worldPos = screenToWorldJS(x, y);
+        material.uniforms.uCursorSphere.value.copy(worldPos);
+        material.uniforms.uMousePosition.value.set(x, y);
+      }
+    };
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      setIsDragging(true);
+      material.uniforms.uCursorRadius.value = 0.15;
+      material.uniforms.uSmoothness.value = 1.2;
+      handleTouchMove(e);
+    };
+
+    const handleTouchEnd = (e) => {
+      setIsDragging(false);
+      material.uniforms.uCursorRadius.value = 0.08;
+      material.uniforms.uSmoothness.value = 0.8;
+    };
+
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
 
     // Resize handler
     const handleResize = () => {
@@ -329,6 +409,11 @@ const Portfolio = () => {
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('resize', handleResize);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -380,25 +465,23 @@ const Portfolio = () => {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#0a0a15] text-white overflow-x-hidden">
+    <div className={styles.container}>
       {/* Metaball Background */}
-      <div ref={containerRef} className="fixed inset-0 z-0" />
+      <div ref={containerRef} className={styles.metaballBackground} />
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm bg-black/20">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <nav className={styles.nav}>
+        <div className={styles.navContainer}>
+          <div className={styles.navBrand}>
             YourName
           </div>
-          <div className="hidden md:flex gap-8">
+          <div className={styles.navLinks}>
             {['home', 'about', 'projects', 'contact'].map((section) => (
               <button
                 key={section}
                 onClick={() => scrollToSection(section)}
-                className={`capitalize transition-colors ${
-                  activeSection === section
-                    ? 'text-purple-400'
-                    : 'text-gray-400 hover:text-white'
+                className={`${styles.navButton} ${
+                  activeSection === section ? styles.navButtonActive : ''
                 }`}
               >
                 {section}
@@ -409,56 +492,51 @@ const Portfolio = () => {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="relative z-10 min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-4xl text-center">
-          <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+      <section id="home" className={styles.section}>
+        <div className={styles.heroContent}>
+          <h1 className={styles.heroTitle}>
             Full Stack Developer
           </h1>
-          <p className="text-xl md:text-2xl text-gray-300 mb-8">
+          <p className={styles.heroSubtitle}>
             Crafting beautiful, performant web experiences that users love
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
+          <div className={styles.buttonGroup}>
             <button
               onClick={() => scrollToSection('projects')}
-              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/50 transition-all"
+              className={styles.buttonPrimary}
             >
               View Projects
             </button>
             <button
               onClick={() => scrollToSection('contact')}
-              className="px-8 py-3 border border-purple-400 rounded-full font-semibold hover:bg-purple-400/10 transition-all"
+              className={styles.buttonSecondary}
             >
               Get in Touch
             </button>
-          </div>
-          
-          {/* Cursor Info */}
-          <div className="mt-12 text-sm text-gray-500 font-mono">
-            vessel: ({cursorInfo.x}, {cursorInfo.y}) • field: {cursorInfo.radius}u • flux: {fps}hz
           </div>
         </div>
       </section>
 
       {/* About Section */}
-      <section id="about" className="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
-        <div className="max-w-4xl">
-          <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <section id="about" className={`${styles.section} ${styles.sectionWithPadding}`}>
+        <div className={styles.aboutContent}>
+          <h2 className={styles.sectionTitle}>
             About Me
           </h2>
-          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10">
-            <p className="text-lg text-gray-300 mb-6">
+          <div className={styles.card}>
+            <p className={styles.cardText}>
               I'm a passionate full-stack developer with 5+ years of experience building scalable web applications. 
               I specialize in modern JavaScript frameworks, cloud architecture, and creating intuitive user experiences.
             </p>
-            <p className="text-lg text-gray-300 mb-8">
+            <p className={styles.cardText}>
               When I'm not coding, you'll find me exploring new technologies, contributing to open source, 
               or sharing knowledge through technical writing.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className={styles.skillsGrid}>
               {['React', 'Node.js', 'TypeScript', 'AWS', 'PostgreSQL', 'Docker', 'Next.js', 'GraphQL'].map((skill) => (
                 <div
                   key={skill}
-                  className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg p-4 text-center border border-purple-400/20 hover:border-purple-400/50 transition-all"
+                  className={styles.skillBadge}
                 >
                   {skill}
                 </div>
@@ -469,24 +547,28 @@ const Portfolio = () => {
       </section>
 
       {/* Projects Section */}
-      <section id="projects" className="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
-        <div className="max-w-6xl w-full">
-          <h2 className="text-5xl font-bold mb-12 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <section id="projects" className={`${styles.section} ${styles.sectionWithPadding}`}>
+        <div className={styles.projectsContent}>
+          <h2 className={styles.sectionTitle} style={{textAlign: 'center', marginBottom: '3rem'}}>
             Featured Projects
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={styles.projectsGrid}>
             {projects.map((project, index) => (
               <div
                 key={index}
-                className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 hover:border-purple-400/50 transition-all hover:transform hover:scale-105"
+                ref={(el) => (projectRefs.current[index] = el)}
+                className={`${styles.projectCard} ${
+                  visibleProjects.includes(index) ? styles.projectCardVisible : styles.projectCardHidden
+                }`}
+                style={{ transitionDelay: `${index * 0.1}s` }}
               >
-                <h3 className="text-2xl font-bold mb-3 text-purple-300">{project.title}</h3>
-                <p className="text-gray-400 mb-4">{project.description}</p>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <h3 className={styles.projectTitle}>{project.title}</h3>
+                <p className={styles.projectDescription}>{project.description}</p>
+                <div className={styles.techTags}>
                   {project.tech.map((tech, i) => (
                     <span
                       key={i}
-                      className="text-xs px-3 py-1 bg-purple-500/20 rounded-full border border-purple-400/30"
+                      className={styles.techTag}
                     >
                       {tech}
                     </span>
@@ -494,7 +576,7 @@ const Portfolio = () => {
                 </div>
                 <a
                   href={project.link}
-                  className="text-purple-400 hover:text-purple-300 transition-colors inline-flex items-center gap-2"
+                  className={styles.projectLink}
                 >
                   View Project →
                 </a>
@@ -505,22 +587,22 @@ const Portfolio = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="relative z-10 min-h-screen flex items-center justify-center px-6 py-20">
-        <div className="max-w-2xl w-full text-center">
-          <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+      <section id="contact" className={`${styles.section} ${styles.sectionWithPadding}`}>
+        <div className={styles.contactContent}>
+          <h2 className={styles.sectionTitle}>
             Let's Connect
           </h2>
-          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10">
-            <p className="text-lg text-gray-300 mb-8">
+          <div className={styles.contactCard}>
+            <p className={styles.cardText}>
               I'm always open to discussing new projects, creative ideas, or opportunities to be part of your visions.
             </p>
             <button
               onClick={handleEmailClick}
-              className="text-2xl font-mono text-purple-400 hover:text-purple-300 transition-colors mb-4"
+              className={styles.emailButton}
             >
               {emailCopied ? '✓ Copied to clipboard!' : 'hello@yourname.com'}
             </button>
-            <div className="flex justify-center gap-6 mt-8">
+            <div className={styles.socialLinks}>
               {[
                 { name: 'GitHub', link: '#' },
                 { name: 'LinkedIn', link: '#' },
@@ -529,7 +611,7 @@ const Portfolio = () => {
                 <a
                   key={social.name}
                   href={social.link}
-                  className="px-6 py-2 border border-purple-400/50 rounded-full hover:bg-purple-400/10 transition-all"
+                  className={styles.socialLink}
                 >
                   {social.name}
                 </a>
@@ -540,7 +622,7 @@ const Portfolio = () => {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 py-8 text-center text-gray-500 text-sm border-t border-white/10">
+      <footer className={styles.footer}>
         <p>© 2024 YourName. Built with Next.js & Three.js</p>
       </footer>
     </div>
