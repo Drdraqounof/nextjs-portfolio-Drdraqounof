@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import Link from 'next/link';
 import styles from './portfolio.module.css';
 
 const Portfolio = () => {
@@ -476,17 +477,23 @@ const Portfolio = () => {
             YourName
           </div>
           <div className={styles.navLinks}>
-            {['home', 'about', 'projects', 'contact'].map((section) => (
-              <button
-                key={section}
-                onClick={() => scrollToSection(section)}
-                className={`${styles.navButton} ${
-                  activeSection === section ? styles.navButtonActive : ''
-                }`}
-              >
-                {section}
-              </button>
-            ))}
+            <button
+              onClick={() => scrollToSection('home')}
+              className={`${styles.navButton} ${
+                activeSection === 'home' ? styles.navButtonActive : ''
+              }`}
+            >
+              home
+            </button>
+            <Link href="/about" className={styles.navButton}>
+              about
+            </Link>
+            <Link href="/projects" className={styles.navButton}>
+              projects
+            </Link>
+            <Link href="/contact" className={styles.navButton}>
+              contact
+            </Link>
           </div>
         </div>
       </nav>

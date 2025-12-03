@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
-    "@prisma/client": "^7.0.1",
+    "@prisma/client": "^5.22.0",
     "@tailwindcss/postcss": "^4.1.17",
     "next": "^15.0.3",
     "react": "^18.0.0",
@@ -30,15 +30,14 @@
     "eslint-config-next": "^15.0.3",
     "jsdom": "^23.0.1",
     "postcss": "^8.5.6",
-    "prisma": "^7.0.1",
+    "prisma": "^5.22.0",
     "tailwindcss": "^4.1.17",
     "vitest": "^2.0.5"
   },
   "engines": {
     "node": ">=20.0.0"
   },
-"prisma": {
-  "seed": "node prisma/seed.js"
-}
-
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
 }
