@@ -1,637 +1,281 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import * as THREE from 'three';
 import Link from 'next/link';
-import styles from './portfolio.module.css';
+import { useEffect, useRef } from 'react';
 
-const Portfolio = () => {
-  const [activeSection, setActiveSection] = useState('home');
-  const [emailCopied, setEmailCopied] = useState(false);
-  const [fps, setFps] = useState(60);
-  const [cursorInfo, setCursorInfo] = useState({ x: 0, y: 0, radius: 0.08, merges: 0 });
-  const [visibleProjects, setVisibleProjects] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
+export default function Home() {
   const containerRef = useRef(null);
-  const sceneRef = useRef(null);
-  const rendererRef = useRef(null);
-  const materialRef = useRef(null);
-  const clockRef = useRef(null);
-  const animationFrameRef = useRef(null);
-  const projectRefs = useRef([]);
 
-  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // Scroll animation for projects
   useEffect(() => {
-    const refs = projectRefs.current;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = refs.indexOf(entry.target);
-            if (index !== -1 && !visibleProjects.includes(index)) {
-              setVisibleProjects((prev) => [...prev, index]);
-            }
-          }
-        });
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px'
+    let cleanup;
+    
+    import('three').then((THREE) => {
+      if (!containerRef.current) return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      
+      const pixelRatio = Math.min(window.devicePixelRatio, 2);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(pixelRatio);
+      containerRef.current.appendChild(renderer.domElement);
+
+      const resolution = 256;
+      const waterBuffers = {
+        current: new Float32Array(resolution * resolution),
+        previous: new Float32Array(resolution * resolution),
+        velocity: new Float32Array(resolution * resolution * 2),
+      };
+
+      for (let i = 0; i < resolution * resolution; i++) {
+        waterBuffers.current[i] = 0.0;
+        waterBuffers.previous[i] = 0.0;
+        waterBuffers.velocity[i * 2] = 0.0;
+        waterBuffers.velocity[i * 2 + 1] = 0.0;
       }
-    );
 
-    refs.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
+      const waterTexture = new THREE.DataTexture(
+        waterBuffers.current,
+        resolution,
+        resolution,
+        THREE.RedFormat,
+        THREE.FloatType
+      );
+      waterTexture.minFilter = THREE.LinearFilter;
+      waterTexture.magFilter = THREE.LinearFilter;
+      waterTexture.needsUpdate = true;
 
-    return () => {
-      refs.forEach((ref) => {
-        if (ref) observer.unobserve(ref);
-      });
-    };
-  }, [visibleProjects]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const mobile = isMobile;
-
-    // Initialize Three.js scene
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
-    camera.position.z = 1;
-    const clock = new THREE.Clock();
-
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !mobile,
-      alpha: true,
-      powerPreference: mobile ? 'default' : 'high-performance',
-    });
-
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2);
-    renderer.setPixelRatio(pixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 0);
-
-    container.appendChild(renderer.domElement);
-
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-        uActualResolution: { value: new THREE.Vector2(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio) },
-        uPixelRatio: { value: pixelRatio },
-        uMousePosition: { value: new THREE.Vector2(0.5, 0.5) },
-        uCursorSphere: { value: new THREE.Vector3(0, 0, 0) },
-        uCursorRadius: { value: 0.08 },
-        uSphereCount: { value: mobile ? 4 : 6 },
-        uFixedTopLeftRadius: { value: 0.8 },
-        uFixedBottomRightRadius: { value: 0.9 },
-        uSmallTopLeftRadius: { value: 0.3 },
-        uSmallBottomRightRadius: { value: 0.35 },
-        uSmoothness: { value: 0.8 },
-        uAmbientIntensity: { value: 0.12 },
-        uDiffuseIntensity: { value: 1.2 },
-        uSpecularIntensity: { value: 2.5 },
-        uSpecularPower: { value: 3 },
-        uFresnelPower: { value: 0.8 },
-        uBackgroundColor: { value: new THREE.Color(0x0a0a15) },
-        uSphereColor: { value: new THREE.Color(0x050510) },
-        uLightColor: { value: new THREE.Color(0xccaaff) },
-        uLightPosition: { value: new THREE.Vector3(0.9, 0.9, 1.2) },
-        uContrast: { value: 1.6 },
-        uFogDensity: { value: 0.06 },
-        uAnimationSpeed: { value: 0.6 },
-        uMovementScale: { value: 1.2 },
-        uCursorGlowIntensity: { value: 1.2 },
-        uCursorGlowRadius: { value: 2.2 },
-        uCursorGlowColor: { value: new THREE.Color(0xaa77ff) },
-      },
-      vertexShader: `
+      const vertexShader = `
         varying vec2 vUv;
         void main() {
           vUv = uv;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
-      `,
-      fragmentShader: `
-        precision highp float;
-        uniform float uTime;
-        uniform vec2 uResolution;
-        uniform vec2 uActualResolution;
-        uniform vec2 uMousePosition;
-        uniform vec3 uCursorSphere;
-        uniform float uCursorRadius;
-        uniform int uSphereCount;
-        uniform float uFixedTopLeftRadius;
-        uniform float uFixedBottomRightRadius;
-        uniform float uSmallTopLeftRadius;
-        uniform float uSmallBottomRightRadius;
-        uniform float uSmoothness;
-        uniform float uAmbientIntensity;
-        uniform float uDiffuseIntensity;
-        uniform float uSpecularIntensity;
-        uniform float uSpecularPower;
-        uniform float uFresnelPower;
-        uniform vec3 uBackgroundColor;
-        uniform vec3 uSphereColor;
-        uniform vec3 uLightColor;
-        uniform vec3 uLightPosition;
-        uniform float uContrast;
-        uniform float uFogDensity;
-        uniform float uAnimationSpeed;
-        uniform float uMovementScale;
-        uniform float uCursorGlowIntensity;
-        uniform float uCursorGlowRadius;
-        uniform vec3 uCursorGlowColor;
+      `;
+
+      const fragmentShader = `
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform float u_speed;
+        uniform sampler2D u_waterTexture;
+        uniform float u_waterStrength;
+        uniform int u_gradientTheme;
+        
         varying vec2 vUv;
-        
-        const float PI = 3.14159265359;
-        const float EPSILON = 0.001;
-        const float MAX_DIST = 100.0;
-        
-        float smin(float a, float b, float k) {
-          float h = max(k - abs(a - b), 0.0) / k;
-          return min(a, b) - h * h * k * 0.25;
+
+        vec4 electricPlasma(vec2 u, float t) {
+          float a=0., d=0., i=0.;
+          for (; i < 8.; d += sin(i++ * u.y + a))
+             a += sin(i - d + 0.15 * t - a * u.x);
+          vec3 c = mix(vec3(0.1,0.0,0.8), vec3(0.5,0.2,1.0), .5+.5*cos(a));
+          c = mix(c, vec3(1.0), .5+.5*sin(d));
+          return vec4(c, 1.0);
         }
-        
-        float sdSphere(vec3 p, float r) {
-          return length(p) - r;
+
+        vec4 moltenGold(vec2 u, float t) {
+          float a=0., d=0., i=0.;
+          for (; i < 10.; d += cos(i++ * u.y * 0.8 + a))
+            a += cos(i - d + 0.1 * t - a * u.x + length(u));
+          vec3 c = mix(vec3(0.), vec3(0.6,0.1,0.0), smoothstep(-1.,1.,cos(d)));
+          c = mix(c, vec3(1.0,0.5,0.0), smoothstep(-.5,.5,sin(a)));
+          c = mix(c, vec3(1.0,0.9,0.3), smoothstep(0.8,1.,cos(a+d)));
+          return vec4(pow(c, vec3(1.5)), 1.0);
         }
-        
-        vec3 screenToWorld(vec2 normalizedPos) {
-          vec2 uv = normalizedPos * 2.0 - 1.0;
-          uv.x *= uResolution.x / uResolution.y;
-          return vec3(uv * 2.0, 0.0);
+
+        vec4 getGradientColor(vec2 u, float t, int theme) {
+          if (theme == 0) return electricPlasma(u, t);
+          else return moltenGold(u, t);
         }
-        
-        float sceneSDF(vec3 pos) {
-          float result = MAX_DIST;
-          
-          vec3 topLeftPos = screenToWorld(vec2(0.08, 0.92));
-          float topLeft = sdSphere(pos - topLeftPos, uFixedTopLeftRadius);
-          
-          vec3 smallTopLeftPos = screenToWorld(vec2(0.25, 0.72));
-          float smallTopLeft = sdSphere(pos - smallTopLeftPos, uSmallTopLeftRadius);
-          
-          vec3 bottomRightPos = screenToWorld(vec2(0.92, 0.08));
-          float bottomRight = sdSphere(pos - bottomRightPos, uFixedBottomRightRadius);
-          
-          vec3 smallBottomRightPos = screenToWorld(vec2(0.72, 0.25));
-          float smallBottomRight = sdSphere(pos - smallBottomRightPos, uSmallBottomRightRadius);
-          
-          float t = uTime * uAnimationSpeed;
-          
-          for (int i = 0; i < 6; i++) {
-            if (i >= uSphereCount) break;
-            
-            float fi = float(i);
-            float speed = 0.4 + fi * 0.12;
-            float radius = 0.12 + mod(fi, 3.0) * 0.06;
-            float orbitRadius = (0.3 + mod(fi, 3.0) * 0.15) * uMovementScale;
-            float phaseOffset = fi * PI * 0.35;
-            
-            vec3 offset = vec3(
-              sin(t * speed + phaseOffset) * orbitRadius * 0.8,
-              cos(t * speed * 0.85 + phaseOffset * 1.3) * orbitRadius * 0.6,
-              sin(t * speed * 0.5 + phaseOffset) * 0.3
-            );
-            
-            float movingSphere = sdSphere(pos - offset, radius);
-            result = smin(result, movingSphere, 0.05);
-          }
-          
-          float cursorBall = sdSphere(pos - uCursorSphere, uCursorRadius);
-          
-          float topLeftGroup = smin(topLeft, smallTopLeft, 0.4);
-          float bottomRightGroup = smin(bottomRight, smallBottomRight, 0.4);
-          
-          result = smin(result, topLeftGroup, 0.3);
-          result = smin(result, bottomRightGroup, 0.3);
-          result = smin(result, cursorBall, uSmoothness);
-          
-          return result;
-        }
-        
-        vec3 calcNormal(vec3 p) {
-          float eps = 0.001;
-          return normalize(vec3(
-            sceneSDF(p + vec3(eps, 0, 0)) - sceneSDF(p - vec3(eps, 0, 0)),
-            sceneSDF(p + vec3(0, eps, 0)) - sceneSDF(p - vec3(0, eps, 0)),
-            sceneSDF(p + vec3(0, 0, eps)) - sceneSDF(p - vec3(0, 0, eps))
-          ));
-        }
-        
-        float rayMarch(vec3 ro, vec3 rd) {
-          float t = 0.0;
-          for (int i = 0; i < 48; i++) {
-            vec3 p = ro + rd * t;
-            float d = sceneSDF(p);
-            if (d < EPSILON) return t;
-            if (t > 5.0) break;
-            t += d * 0.9;
-          }
-          return -1.0;
-        }
-        
-        vec3 lighting(vec3 p, vec3 rd, float t) {
-          if (t < 0.0) return vec3(0.0);
-          
-          vec3 normal = calcNormal(p);
-          vec3 viewDir = -rd;
-          vec3 baseColor = uSphereColor;
-          vec3 ambient = uLightColor * uAmbientIntensity;
-          
-          vec3 lightDir = normalize(uLightPosition);
-          float diff = max(dot(normal, lightDir), 0.0);
-          vec3 diffuse = uLightColor * diff * uDiffuseIntensity;
-          
-          vec3 reflectDir = reflect(-lightDir, normal);
-          float spec = pow(max(dot(viewDir, reflectDir), 0.0), uSpecularPower);
-          float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), uFresnelPower);
-          vec3 specular = uLightColor * spec * uSpecularIntensity * fresnel;
-          
-          vec3 color = baseColor + ambient + diffuse + specular;
-          color = pow(color, vec3(uContrast * 0.9));
-          color = color / (color + vec3(0.8));
-          
-          return color;
-        }
-        
-        float calculateCursorGlow(vec3 worldPos) {
-          float dist = length(worldPos.xy - uCursorSphere.xy);
-          float glow = 1.0 - smoothstep(0.0, uCursorGlowRadius, dist);
-          return pow(glow, 2.0) * uCursorGlowIntensity;
-        }
-        
+
         void main() {
-          vec2 uv = (gl_FragCoord.xy * 2.0 - uActualResolution.xy) / uActualResolution.xy;
-          uv.x *= uResolution.x / uResolution.y;
+          vec2 r = u_resolution;
+          vec2 FC = gl_FragCoord.xy;
+          vec2 screenP = (FC.xy * 2.0 - r) / r.y;
           
-          vec3 ro = vec3(uv * 2.0, -1.0);
-          vec3 rd = vec3(0.0, 0.0, 1.0);
-          float t = rayMarch(ro, rd);
-          vec3 p = ro + rd * t;
-          vec3 color = lighting(p, rd, t);
+          vec2 wCoord = vec2(FC.x / r.x, FC.y / r.y);
+          float waterHeight = texture2D(u_waterTexture, wCoord).r;
+          float waterInfluence = clamp(waterHeight * u_waterStrength, -0.5, 0.5);
           
-          float cursorGlow = calculateCursorGlow(ro);
-          vec3 glowContribution = uCursorGlowColor * cursorGlow;
+          vec2 gradientUV = screenP + vec2(waterInfluence * 0.3, waterInfluence * 0.2);
+          float modifiedTime = u_time * u_speed + waterInfluence * 2.0;
+          vec4 gradientColor = getGradientColor(gradientUV, modifiedTime, u_gradientTheme);
           
-          if (t > 0.0) {
-            float fogAmount = 1.0 - exp(-t * uFogDensity);
-            color = mix(color, uBackgroundColor, fogAmount * 0.3);
-            color += glowContribution * 0.3;
-            gl_FragColor = vec4(color, 1.0);
-          } else {
-            if (cursorGlow > 0.01) {
-              gl_FragColor = vec4(glowContribution, cursorGlow * 0.8);
-            } else {
-              gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+          gl_FragColor = gradientColor;
+        }
+      `;
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms: {
+          u_time: { value: 0.0 },
+          u_resolution: { value: new THREE.Vector2(window.innerWidth * pixelRatio, window.innerHeight * pixelRatio) },
+          u_speed: { value: 1.3 },
+          u_waterTexture: { value: waterTexture },
+          u_waterStrength: { value: 0.55 },
+          u_gradientTheme: { value: 0 }
+        }
+      });
+
+      const geometry = new THREE.PlaneGeometry(2, 2);
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+      camera.position.z = 1;
+
+      const clock = new THREE.Clock();
+
+      const updateWaterSimulation = () => {
+        const { current, previous } = waterBuffers;
+        const damping = 0.913;
+        const tension = 0.02;
+
+        for (let i = 1; i < resolution - 1; i++) {
+          for (let j = 1; j < resolution - 1; j++) {
+            const index = i * resolution + j;
+            const top = previous[index - resolution];
+            const bottom = previous[index + resolution];
+            const left = previous[index - 1];
+            const right = previous[index + 1];
+
+            current[index] = (top + bottom + left + right) / 2 - current[index];
+            current[index] = current[index] * damping + previous[index] * (1 - damping);
+            current[index] += (0 - previous[index]) * tension;
+            current[index] = Math.max(-2.0, Math.min(2.0, current[index]));
+          }
+        }
+
+        [waterBuffers.current, waterBuffers.previous] = [waterBuffers.previous, waterBuffers.current];
+        waterTexture.image.data = waterBuffers.current;
+        waterTexture.needsUpdate = true;
+      };
+
+      const addRipple = (x, y, strength = 1.0) => {
+        const normalizedX = x / window.innerWidth;
+        const normalizedY = 1.0 - y / window.innerHeight;
+        const texX = Math.floor(normalizedX * resolution);
+        const texY = Math.floor(normalizedY * resolution);
+        const radius = 8;
+        const rippleStrength = strength * 0.5;
+
+        for (let i = -radius; i <= radius; i++) {
+          for (let j = -radius; j <= radius; j++) {
+            const distanceSquared = i * i + j * j;
+            if (distanceSquared <= radius * radius) {
+              const posX = texX + i;
+              const posY = texY + j;
+              if (posX >= 0 && posX < resolution && posY >= 0 && posY < resolution) {
+                const index = posY * resolution + posX;
+                const distance = Math.sqrt(distanceSquared);
+                const falloff = 1.0 - distance / radius;
+                const rippleValue = Math.cos((distance / radius) * Math.PI * 0.5) * rippleStrength * falloff;
+                waterBuffers.previous[index] += rippleValue;
+              }
             }
           }
         }
-      `,
-      transparent: true,
+      };
+
+      let lastMousePosition = { x: 0, y: 0 };
+      let mouseThrottleTime = 0;
+
+      const onMouseMove = (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const now = performance.now();
+
+        if (now - mouseThrottleTime < 8) return;
+        mouseThrottleTime = now;
+
+        const dx = x - lastMousePosition.x;
+        const dy = y - lastMousePosition.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 1) {
+          const baseIntensity = Math.min(distance / 20, 1.0);
+          addRipple(x, y, baseIntensity * 1.2);
+          lastMousePosition = { x, y };
+        }
+      };
+
+      const onMouseClick = (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        addRipple(x, y, 3.0);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('click', onMouseClick);
+
+      const animate = () => {
+        const animationId = requestAnimationFrame(animate);
+        const elapsed = clock.getElapsedTime();
+        material.uniforms.u_time.value = elapsed;
+        updateWaterSimulation();
+        renderer.render(scene, camera);
+      };
+
+      const onWindowResize = () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const currentPixelRatio = Math.min(window.devicePixelRatio, 2);
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(currentPixelRatio);
+        material.uniforms.u_resolution.value.set(width * currentPixelRatio, height * currentPixelRatio);
+      };
+
+      window.addEventListener('resize', onWindowResize);
+
+      setTimeout(() => {
+        addRipple(window.innerWidth / 2, window.innerHeight / 2, 1.5);
+      }, 500);
+
+      animate();
+
+      cleanup = () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('click', onMouseClick);
+        window.removeEventListener('resize', onWindowResize);
+        if (containerRef.current && renderer.domElement) {
+          containerRef.current.removeChild(renderer.domElement);
+        }
+        renderer.dispose();
+        geometry.dispose();
+        material.dispose();
+      };
     });
-
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    sceneRef.current = scene;
-    rendererRef.current = renderer;
-    materialRef.current = material;
-    clockRef.current = clock;
-
-    // Mouse handling
-    const handleMouseMove = (e) => {
-      const x = e.clientX / window.innerWidth;
-      const y = 1.0 - e.clientY / window.innerHeight;
-      
-      const worldPos = screenToWorldJS(x, y);
-      material.uniforms.uCursorSphere.value.copy(worldPos);
-      material.uniforms.uMousePosition.value.set(x, y);
-      
-      setCursorInfo({
-        x: worldPos.x.toFixed(2),
-        y: worldPos.y.toFixed(2),
-        radius: material.uniforms.uCursorRadius.value.toFixed(2),
-        merges: 0
-      });
-    };
-
-    const handleMouseDown = (e) => {
-      e.preventDefault();
-      setIsDragging(true);
-      material.uniforms.uCursorRadius.value = 0.15;
-      material.uniforms.uSmoothness.value = 1.2;
-    };
-
-    const handleMouseUp = (e) => {
-      setIsDragging(false);
-      material.uniforms.uCursorRadius.value = 0.08;
-      material.uniforms.uSmoothness.value = 0.8;
-    };
-
-    const screenToWorldJS = (normalizedX, normalizedY) => {
-      const uv_x = normalizedX * 2.0 - 1.0;
-      const uv_y = normalizedY * 2.0 - 1.0;
-      const aspect = window.innerWidth / window.innerHeight;
-      return new THREE.Vector3(uv_x * aspect * 2.0, uv_y * 2.0, 0.0);
-    };
-
-    const handleTouchMove = (e) => {
-      if (e.touches.length > 0) {
-        const touch = e.touches[0];
-        const x = touch.clientX / window.innerWidth;
-        const y = 1.0 - touch.clientY / window.innerHeight;
-        
-        const worldPos = screenToWorldJS(x, y);
-        material.uniforms.uCursorSphere.value.copy(worldPos);
-        material.uniforms.uMousePosition.value.set(x, y);
-      }
-    };
-
-    const handleTouchStart = (e) => {
-      e.preventDefault();
-      setIsDragging(true);
-      material.uniforms.uCursorRadius.value = 0.15;
-      material.uniforms.uSmoothness.value = 1.2;
-      handleTouchMove(e);
-    };
-
-    const handleTouchEnd = (e) => {
-      setIsDragging(false);
-      material.uniforms.uCursorRadius.value = 0.08;
-      material.uniforms.uSmoothness.value = 0.8;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd);
-
-    // Resize handler
-    const handleResize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const currentPixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
-      
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(currentPixelRatio);
-      material.uniforms.uResolution.value.set(width, height);
-      material.uniforms.uActualResolution.value.set(width * currentPixelRatio, height * currentPixelRatio);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Animation loop
-    let lastTime = performance.now();
-    let frameCount = 0;
-
-    const animate = () => {
-      animationFrameRef.current = requestAnimationFrame(animate);
-      
-      const currentTime = performance.now();
-      frameCount++;
-      
-      if (currentTime - lastTime >= 1000) {
-        setFps(Math.round((frameCount * 1000) / (currentTime - lastTime)));
-        frameCount = 0;
-        lastTime = currentTime;
-      }
-      
-      material.uniforms.uTime.value = clock.getElapsedTime();
-      renderer.render(scene, camera);
-    };
-
-    animate();
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('resize', handleResize);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (container && renderer.domElement) {
-        container.removeChild(renderer.domElement);
-      }
-      geometry.dispose();
-      material.dispose();
-      renderer.dispose();
+      if (cleanup) cleanup();
     };
-  }, [isMobile]);
-
-  const handleEmailClick = (e) => {
-    e.preventDefault();
-    navigator.clipboard.writeText('hello@yourname.com').then(() => {
-      setEmailCopied(true);
-      setTimeout(() => setEmailCopied(false), 2000);
-    });
-  };
-
-  const scrollToSection = (section) => {
-    setActiveSection(section);
-    const element = document.getElementById(section);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const projects = [
-    {
-      title: 'AI-Powered Analytics Platform',
-      description: 'Built a real-time analytics dashboard processing 10M+ events daily',
-      tech: ['React', 'Node.js', 'PostgreSQL', 'Redis'],
-      link: '#'
-    },
-    {
-      title: 'E-Commerce Microservices',
-      description: 'Architected scalable microservices handling 50k concurrent users',
-      tech: ['Go', 'Kubernetes', 'gRPC', 'MongoDB'],
-      link: '#'
-    },
-    {
-      title: 'Mobile Fitness App',
-      description: 'Cross-platform app with 100k+ downloads and 4.8★ rating',
-      tech: ['React Native', 'Firebase', 'TensorFlow'],
-      link: '#'
-    }
-  ];
+  }, []);
 
   return (
-    <div className={styles.container}>
-      {/* Metaball Background */}
-      <div ref={containerRef} className={styles.metaballBackground} />
+    <main ref={containerRef} id="container" style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+      <header className="brand">
+        <h1 className="logo-text">Frontend Web Developer</h1>
+      </header>
 
-      {/* Navigation */}
-      <nav className={styles.nav}>
-        <div className={styles.navContainer}>
-          <div className={styles.navBrand}>
-            YourName
-          </div>
-          <div className={styles.navLinks}>
-            <button
-              onClick={() => scrollToSection('home')}
-              className={`${styles.navButton} ${
-                activeSection === 'home' ? styles.navButtonActive : ''
-              }`}
-            >
-              home
-            </button>
-            <Link href="/about" className={styles.navButton}>
-              about
-            </Link>
-            <Link href="/projects" className={styles.navButton}>
-              projects
-            </Link>
-            <Link href="/contact" className={styles.navButton}>
-              contact
-            </Link>
-          </div>
-        </div>
+      <div className="center-header">
+        <h1 className="main-title">Welcome to My Portfolio</h1>
+        <p className="main-subtitle">Interactive Design & Development</p>
+      </div>
+
+      <nav className="nav-links" role="navigation" aria-label="Main navigation">
+        <Link href="/projects" aria-label="Projects page">Projects</Link>
+        <Link href="/about" aria-label="About page">About</Link>
+        <Link href="/contact" aria-label="Contact page">Contact</Link>
       </nav>
 
-      {/* Hero Section */}
-      <section id="home" className={styles.section}>
-        <div className={styles.heroContent}>
-          <h1 className={styles.heroTitle}>
-            Full Stack Developer
-          </h1>
-          <p className={styles.heroSubtitle}>
-            Crafting beautiful, performant web experiences that users love
-          </p>
-          <div className={styles.buttonGroup}>
-            <Link href="/projects" className={styles.buttonPrimary}>
-              View Projects
-            </Link>
-            <Link href="/contact" className={styles.buttonSecondary}>
-              Get in Touch
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section id="about" className={`${styles.section} ${styles.sectionWithPadding}`}>
-        <div className={styles.aboutContent}>
-          <h2 className={styles.sectionTitle}>
-            About Me
-          </h2>
-          <div className={styles.card}>
-            <p className={styles.cardText}>
-              I&apos;m a passionate full-stack developer with 5+ years of experience building scalable web applications. 
-              I specialize in modern JavaScript frameworks, cloud architecture, and creating intuitive user experiences.
-            </p>
-            <p className={styles.cardText}>
-              When I&apos;m not coding, you&apos;ll find me exploring new technologies, contributing to open source, 
-              or sharing knowledge through technical writing.
-            </p>
-            <div className={styles.skillsGrid}>
-              {['React', 'Node.js', 'TypeScript', 'AWS', 'PostgreSQL', 'Docker', 'Next.js', 'GraphQL'].map((skill) => (
-                <div
-                  key={skill}
-                  className={styles.skillBadge}
-                >
-                  {skill}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Projects Section */}
-      <section id="projects" className={`${styles.section} ${styles.sectionWithPadding}`}>
-        <div className={styles.projectsContent}>
-          <h2 className={styles.sectionTitle} style={{textAlign: 'center', marginBottom: '3rem'}}>
-            Featured Projects
-          </h2>
-          <div className={styles.projectsGrid}>
-            {projects.map((project, index) => (
-              <div
-                key={index}
-                ref={(el) => (projectRefs.current[index] = el)}
-                className={`${styles.projectCard} ${
-                  visibleProjects.includes(index) ? styles.projectCardVisible : styles.projectCardHidden
-                }`}
-                style={{ transitionDelay: `${index * 0.1}s` }}
-              >
-                <h3 className={styles.projectTitle}>{project.title}</h3>
-                <p className={styles.projectDescription}>{project.description}</p>
-                <div className={styles.techTags}>
-                  {project.tech.map((tech, i) => (
-                    <span
-                      key={i}
-                      className={styles.techTag}
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-                <a
-                  href={project.link}
-                  className={styles.projectLink}
-                >
-                  View Project →
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className={`${styles.section} ${styles.sectionWithPadding}`}>
-        <div className={styles.contactContent}>
-          <h2 className={styles.sectionTitle}>
-            Let&apos;s Connect
-          </h2>
-          <div className={styles.contactCard}>
-            <p className={styles.cardText}>
-              I&apos;m always open to discussing new projects, creative ideas, or opportunities to be part of your visions.
-            </p>
-            <button
-              onClick={handleEmailClick}
-              className={styles.emailButton}
-            >
-              {emailCopied ? '✓ Copied to clipboard!' : 'hello@yourname.com'}
-            </button>
-            <div className={styles.socialLinks}>
-              {[
-                { name: 'GitHub', link: '#' },
-                { name: 'LinkedIn', link: '#' },
-                { name: 'Twitter', link: '#' },
-              ].map((social) => (
-                <a
-                  key={social.name}
-                  href={social.link}
-                  className={styles.socialLink}
-                >
-                  {social.name}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className={styles.footer}>
-        <p>© 2024 YourName. Built with Next.js & Three.js</p>
+      <footer className="page-footer">
+        <nav className="social-links" role="navigation" aria-label="Social media links">
+          <a href="https://github.com/Drdraqounof" aria-label="View GitHub profile" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://linkedin.com/in/juliendanielroane" aria-label="Connect on LinkedIn" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href="mailto:jdani0066@launchpadphilly.org" aria-label="Send an email">Email</a>
+        </nav>
       </footer>
-    </div>
+    </main>
   );
-};
-
-export default Portfolio;
+}

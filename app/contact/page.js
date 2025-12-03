@@ -2,44 +2,58 @@ import Link from 'next/link'
 
 export default function Contact() {
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-5xl font-bold mb-12">Get In Touch</h1>
+    <div className="premium-page">
+      <div className="premium-container">
+        <header className="brand">
+          <h1 className="logo-text">Frontend Web Developer</h1>
+        </header>
         
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-          <p className="text-xl text-gray-700 mb-8">
-            I&apos;d love to hear from you! Feel free to reach out through any of these channels.
-          </p>
+        <nav className="nav-links" role="navigation" aria-label="Main navigation">
+          <Link href="/">Home</Link>
+          <Link href="/projects">Projects</Link>
+          <Link href="/about">About</Link>
+          <Link href="/contact" className="active">Contact</Link>
+        </nav>
 
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <span className="text-3xl">📧</span>
-              <div>
-                <p className="font-bold text-gray-900">Email</p>
-                <p className="text-gray-600">your.email@example.com</p>
-                <p className="text-sm text-blue-600">✏️ TODO: Add your actual email</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="text-3xl">🔗</span>
-              <div>
-                <p className="font-bold text-gray-900">LinkedIn</p>
-                <a href="#" className="text-blue-500 hover:underline">
-                  linkedin.com/in/yourname
+        <div className="premium-content">
+          <h1 className="premium-title">Get In Touch</h1>
+          
+          <div className="premium-card">
+            <div className="premium-card-content">
+              <p className="premium-text large">
+                Let&apos;s work together on your next project
+              </p>
+              
+              <div className="contact-methods">
+                <a href="mailto:jdani0066@launchpadphilly.org" className="contact-method">
+                  <span className="contact-icon">📧</span>
+                  <div className="contact-info">
+                    <h3>Email</h3>
+                    <p>jdani0066@launchpadphilly.org</p>
+                  </div>
                 </a>
-                <p className="text-sm text-blue-600">✏️ TODO: Add your LinkedIn URL</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="text-3xl">💻</span>
-              <div>
-                <p className="font-bold text-gray-900">GitHub</p>
-                <a href="#" className="text-blue-500 hover:underline">
-                  github.com/yourname
+                
+                <a href="https://linkedin.com/in/juliendanielroane" className="contact-method" target="_blank" rel="noopener noreferrer">
+                  <span className="contact-icon">🔗</span>
+                  <div className="contact-info">
+                    <h3>LinkedIn</h3>
+                    <p>linkedin.com/in/juliendanielroane</p>
+                  </div>
                 </a>
-                <p className="text-sm text-blue-600">✏️ TODO: Add your GitHub URL</p>
+                
+                <a href="https://github.com/Drdraqounof" className="contact-method" target="_blank" rel="noopener noreferrer">
+                  <span className="contact-icon">💻</span>
+                  <div className="contact-info">
+                    <h3>GitHub</h3>
+                    <p>github.com/Drdraqounof</p>
+                  </div>
+                </a>
+              </div>
+
+              <div className="cta-wrapper">
+                <a href="mailto:jdani0066@launchpadphilly.org" className="contact-link">
+                  Send Me a Message
+                </a>
               </div>
             </div>
           </div>

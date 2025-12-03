@@ -10,8 +10,8 @@ async function main() {
   // Create a user
   const user = await prisma.user.create({
     data: {
-      name: 'John Doe',
-      email: 'john@example.com',
+      name: 'Julien Daniel-Roane',
+      email: 'jdani0066@launchpadphilly.org',
     },
   });
 
@@ -21,21 +21,21 @@ async function main() {
   const projects = await prisma.project.createMany({
     data: [
       {
-        title: 'AI-Powered Analytics Platform',
-        description: 'Built a real-time analytics dashboard processing 10M+ events daily',
-        tech: ['React', 'Node.js', 'PostgreSQL', 'Redis'],
+        title: '3D Game Demo',
+        description: 'Built a pseudo-3D interactive game using layered sprites and camera motion to create depth. Implemented custom mechanics, coordinate transforms, and collision effects.',
+        tech: ['Scratch', 'Game Design', '3D Simulation', 'Animation'],
         userId: user.id,
       },
       {
-        title: 'E-Commerce Microservices',
-        description: 'Architected scalable microservices handling 50k concurrent users',
-        tech: ['Go', 'Kubernetes', 'gRPC', 'MongoDB'],
+        title: 'Fitness Website',
+        description: 'Designed a modern, responsive website prototype with accessible UI elements. Created mobile and desktop versions for consistent cross-device experience.',
+        tech: ['Figma', 'UI/UX Design', 'Responsive Design', 'Prototyping'],
         userId: user.id,
       },
       {
-        title: 'Mobile Fitness App',
-        description: 'Cross-platform app with 100k+ downloads and 4.8★ rating',
-        tech: ['React Native', 'Firebase', 'TensorFlow'],
+        title: 'Cooking Website',
+        description: 'Developed a responsive recipe site with intuitive navigation and clean layout. Designed UI in Figma and built the front-end using HTML and CSS.',
+        tech: ['HTML', 'CSS', 'Figma', 'Responsive Design'],
         userId: user.id,
       },
     ],

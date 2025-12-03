@@ -26,79 +26,62 @@ export default async function Projects() {
   const projects = await getProjects()
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-5xl font-bold mb-12">My Projects</h1>
+    <div className="premium-page">
+      <div className="premium-container">
+        <header className="brand">
+          <h1 className="logo-text">Frontend Web Developer</h1>
+        </header>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-          {projects.length > 0 ? (
-            projects.map((project) => (
-              <div key={project.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="h-48 bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center">
-                  <p className="text-white font-bold text-xl">{project.title}</p>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-2xl font-bold mb-2">{project.title}</h3>
-                  <p className="text-gray-600 mb-4">
-                    {project.description || 'No description available'}
+        <nav className="nav-links" role="navigation" aria-label="Main navigation">
+          <Link href="/">Home</Link>
+          <Link href="/projects" className="active">Projects</Link>
+          <Link href="/about">About</Link>
+          <Link href="/contact">Contact</Link>
+        </nav>
+
+        <div className="premium-content">
+          <h1 className="premium-title">My Projects</h1>
+          
+          <div className="projects-grid">
+            {projects.length > 0 ? (
+              projects.map((project) => (
+                <div key={project.id} className="project-card">
+                  <h3>{project.title}</h3>
+                  <p>
+                    {project.description || 'An innovative project showcasing cutting-edge technology and creative problem solving'}
                   </p>
                   {project.tech && project.tech.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="tech-tags">
                       {project.tech.map((tech, index) => (
-                        <span key={index} className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded">
+                        <span key={index} className="tech-tag">
                           {tech}
                         </span>
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <span className="text-sm bg-gray-200 px-3 py-1 rounded">
-                      Created: {new Date(project.createdAt).toLocaleDateString()}
-                    </span>
+                </div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <div className="premium-card">
+                  <div className="premium-card-content">
+                    <p className="premium-text">
+                      No projects found yet. Start building amazing things!
+                    </p>
                   </div>
-                  {project.user && (
-                    <p className="text-sm text-gray-500 mt-2">By: {project.user.name}</p>
-                  )}
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 text-lg">No projects found. Add some projects to get started!</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6 mb-8">
-          <h3 className="font-bold text-yellow-900 mb-2">💡 Project Ideas:</h3>
-          <ul className="text-yellow-800 space-y-1">
-            <li>• Past school projects</li>
-            <li>• Personal coding projects</li>
-            <li>• Design work or creative projects</li>
-            <li>• Future projects you want to build (coming soon!)</li>
-          </ul>
-        </div>
-
-        <div className="flex gap-4 justify-center">
-          <Link
-            href="/about"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-          >
-            About Me
-          </Link>
-          <Link
-            href="/contact"
-            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-          >
-            Contact Me
-          </Link>
-          <Link
-            href="/"
-            className="border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors"
-          >
-            Back to Home
-          </Link>
-        </div>
+        <footer className="page-footer">
+          <nav className="social-links" role="navigation" aria-label="Social media links">
+            <a href="https://github.com/Drdraqounof" aria-label="View GitHub profile" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://linkedin.com/in/juliendanielroane" aria-label="Connect on LinkedIn" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            <a href="mailto:jdani0066@launchpadphilly.org" aria-label="Send an email">Email</a>
+          </nav>
+        </footer>
       </div>
     </div>
   )
